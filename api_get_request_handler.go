@@ -43,7 +43,7 @@ func getTableListHandler(w http.ResponseWriter, r *http.Request, db dbHandler) {
 }
 
 func getTableWithParameters(w http.ResponseWriter, r *http.Request, db dbHandler) {
-	tableName := r.URL.Path
+	tableName := strings.ReplaceAll(r.URL.Path, "/", "")
 	offset, offsetErr := strconv.Atoi(r.URL.Query().Get("offset"))
 	limit, limitErr := strconv.Atoi(r.URL.Query().Get("limit"))
 
