@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"regexp"
 	"strconv"
+	"strings"
 )
 
 func DeleteRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) {
@@ -13,10 +13,11 @@ func DeleteRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	reTableName := regexp.MustCompile(`(?P<tablename>\w+)`)
-	matchStrings := reTableName.FindAllString(r.URL.Path, 2)
-	if len(matchStrings) > 0 {
-		currTableName := matchStrings[0]
+
+	urlParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+
+	if len(urlParts) > 0 {
+		currTableName := urlParts[0]
 		if !contains(tableNames, currTableName) {
 			w.WriteHeader(http.StatusNotFound)
 			responseJson, _ := json.Marshal(ServerResponse{
@@ -25,7 +26,7 @@ func DeleteRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) 
 			w.Write(responseJson)
 			return
 		}
-		currRowId, err := strconv.Atoi(matchStrings[1])
+		currRowId, err := strconv.Atoi(urlParts[1])
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

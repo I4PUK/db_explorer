@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
@@ -15,10 +14,10 @@ func PutRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	reTableName := regexp.MustCompile(`(?P<tablename>\w+)`)
-	matchStrings := reTableName.FindAllString(r.URL.Path, 1)
-	if len(matchStrings) > 0 {
-		currTableName := matchStrings[0]
+	urlParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+
+	if len(urlParts) > 0 {
+		currTableName := urlParts[0]
 		if !contains(tableNames, currTableName) {
 			w.WriteHeader(http.StatusNotFound)
 			responseJson, _ := json.Marshal(ServerResponse{
