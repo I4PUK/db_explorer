@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 )
 
@@ -27,6 +28,8 @@ func contains(arr []string, str string) bool {
 }
 
 func handler(w http.ResponseWriter, r *http.Request, db dbHandler) {
+	fmt.Printf("Received %s %s with: %s \n", r.Method, r.URL.Path, r.URL.RawQuery)
+
 	switch r.Method {
 	case http.MethodGet:
 		GetRequestHandler(w, r, db)

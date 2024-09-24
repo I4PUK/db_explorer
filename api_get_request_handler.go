@@ -12,9 +12,6 @@ import (
 func GetRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) {
 	parametersLen := strings.Count(r.URL.Path, "/")
 
-	fmt.Printf("Received GET %s", r.URL.Path)
-	fmt.Printf("Received GET %s", r.URL.RawQuery)
-
 	if r.URL.Path == "/" {
 		getTableListHandler(w, r, db)
 	} else {
