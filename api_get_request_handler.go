@@ -48,10 +48,10 @@ func getTableWithParameters(w http.ResponseWriter, r *http.Request, db dbHandler
 	limit, limitErr := strconv.Atoi(r.URL.Query().Get("limit"))
 
 	if offsetErr != nil {
-		offset = 5
+		offset = 0
 	}
 	if limitErr != nil {
-		limit = 0
+		limit = 5
 	}
 
 	tables, err := db.getTableList(w, r)
