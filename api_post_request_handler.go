@@ -10,14 +10,8 @@ import (
 	"strings"
 )
 
-func PostRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) {
+func PostRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tableNames []string) {
 	urlParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-
-	tableNames, err := db.getTableList(w, r)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 
 	if len(urlParts) > 0 {
 		currTableName := urlParts[0]

@@ -30,17 +30,23 @@ func contains(arr []string, str string) bool {
 func handler(w http.ResponseWriter, r *http.Request, db dbHandler) {
 	fmt.Printf("Received %s %s with: %s \n", r.Method, r.URL.Path, r.URL.RawQuery)
 
+	tableNames, err := db.getTableList(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodGet:
-		GetRequestHandler(w, r, db)
+		GetRequestHandler(w, r, db, tableNames)
 	case http.MethodPost:
-		PostRequestHandler(w, r, db)
+		PostRequestHandler(w, r, db, tableNames)
 		return
 	case http.MethodPut:
-		PutRequestHandler(w, r, db)
+		PutRequestHandler(w, r, db, tableNames)
 		return
 	case http.MethodDelete:
-		DeleteRequestHandler(w, r, db)
+		DeleteRequestHandler(w, r, db, tableNames)
 		return
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

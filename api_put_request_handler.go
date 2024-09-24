@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func PutRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler) {
+func PutRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tableNames []string) {
 	tableNames, err := db.getTableList(w, r)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
