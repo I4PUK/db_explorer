@@ -140,8 +140,8 @@ func (h *dbHandler) getRowDetail(tableName string, rowId int) (ServerResponse, e
 }
 
 func (h *dbHandler) updateRows(tableName string, bodyMap map[string]interface{}, columnNamePK string, currRowId int) (int, error) {
-	columnNames := make([]string, len(bodyMap))
-	columnValues := make([]interface{}, len(bodyMap))
+	columnNames := make([]string, 0, len(bodyMap))
+	columnValues := make([]interface{}, 0, len(bodyMap))
 
 	for key, value := range bodyMap {
 		columnNames = append(columnNames, fmt.Sprintf(`%s=?`, key))
@@ -149,10 +149,14 @@ func (h *dbHandler) updateRows(tableName string, bodyMap map[string]interface{},
 	}
 	columnValues = append(columnValues, currRowId)
 
-	result, err := h.DB.Exec(fmt.Sprintf(`UPDATE %[1]s SET %[2]s WHERE %[3]s=? ;`,
+	q := fmt.Sprintf(
+		"UPDATE %s SET %s WHERE %s = ?",
 		tableName,
-		strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(fmt.Sprintf("%s", columnNames), "[", ""), "]", ""), " ", ","),
-		columnNamePK), columnValues...)
+		strings.Join(columnNames, ", "),
+		columnNamePK,
+	)
+
+	result, err := h.DB.Exec(q, columnValues...)
 
 	if err != nil {
 		return 0, err
