@@ -9,23 +9,10 @@ import (
 )
 
 func PutRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tableNames []string) {
-	tableNames, err := db.getTableList(w, r)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 	urlParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 
 	if len(urlParts) > 0 {
 		currTableName := urlParts[0]
-		if !contains(tableNames, currTableName) {
-			w.WriteHeader(http.StatusNotFound)
-			responseJson, _ := json.Marshal(ServerResponse{
-				"error": "unknown table",
-			})
-			w.Write(responseJson)
-			return
-		}
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -49,11 +36,9 @@ func PutRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tab
 		}
 		invalidField, err := findInvalidTypeField(bodyMap, typesForColumns, columnNamePK)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			responseJson, _ := json.Marshal(ServerResponse{
+			sendResponse(w, http.StatusBadRequest, ServerResponse{
 				"error": fmt.Sprintf(`"field %s have invalid type"`, invalidField),
 			})
-			w.Write(responseJson)
 			return
 		}
 		removeUnknownFields(&bodyMap, typesForColumns)
@@ -63,13 +48,11 @@ func PutRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tab
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		responseJson, _ := json.Marshal(ServerResponse{
+		sendResponse(w, http.StatusOK, ServerResponse{
 			"response": ServerResponse{
 				fmt.Sprintf(`%s`, columnNamePK): idCreated,
 			},
 		})
-		w.Write(responseJson)
 		return
 	}
 	w.WriteHeader(http.StatusInternalServerError)

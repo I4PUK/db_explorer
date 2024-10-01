@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // тут вы пишете код
@@ -18,6 +20,17 @@ import (
 
 type ServerResponse map[string]interface{}
 
+type Request struct {
+	Table    *string
+	RecordId *int
+}
+
+func sendResponse(w http.ResponseWriter, statusCode int, content ServerResponse) {
+	w.WriteHeader(statusCode)
+	responseJson, _ := json.Marshal(content)
+	w.Write(responseJson)
+}
+
 func contains(arr []string, str string) bool {
 	for _, a := range arr {
 		if a == str {
@@ -28,7 +41,7 @@ func contains(arr []string, str string) bool {
 }
 
 func handler(w http.ResponseWriter, r *http.Request, db dbHandler) {
-	fmt.Printf("Received %s %s with: %s \n", r.Method, r.URL.Path, r.URL.RawQuery)
+	//fmt.Printf("Received %s %s with: %s \n", r.Method, r.URL.Path, r.URL.RawQuery)
 
 	tableNames, err := db.getTableList(w, r)
 	if err != nil {
@@ -36,9 +49,31 @@ func handler(w http.ResponseWriter, r *http.Request, db dbHandler) {
 		return
 	}
 
+	req := getUrlPartsFromRequest(r)
+
+	if *req.Table != "" {
+		if contains(tableNames, *req.Table) == false {
+			sendResponse(w, http.StatusNotFound, ServerResponse{"error": "unknown table"})
+			return
+		}
+	}
+
 	switch r.Method {
 	case http.MethodGet:
-		GetRequestHandler(w, r, db, tableNames)
+		if *req.Table == "" {
+			sendResponse(w, http.StatusOK, ServerResponse{
+				"response": ServerResponse{
+					"tables": tableNames,
+				},
+			})
+			return
+		}
+		if req.RecordId == nil {
+			getTableWithParameters(w, r, db)
+		} else {
+			getTableById(w, r, db, tableNames)
+		}
+
 	case http.MethodPost:
 		PostRequestHandler(w, r, db, tableNames)
 		return
@@ -51,6 +86,23 @@ func handler(w http.ResponseWriter, r *http.Request, db dbHandler) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func getUrlPartsFromRequest(r *http.Request) Request {
+	urlParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+
+	var req Request
+	if len(urlParts) >= 1 {
+		req.Table = &urlParts[0]
+	}
+
+	if len(urlParts) >= 2 {
+		if id, err := strconv.Atoi(urlParts[1]); err == nil {
+			req.RecordId = &id
+		}
+	}
+
+	return req
 }
 
 func NewDbExplorer(db *sql.DB) (http.Handler, error) {

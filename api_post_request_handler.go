@@ -15,14 +15,6 @@ func PostRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, ta
 
 	if len(urlParts) > 0 {
 		currTableName := urlParts[0]
-		if !contains(tableNames, currTableName) {
-			w.WriteHeader(http.StatusNotFound)
-			responseJson, _ := json.Marshal(ServerResponse{
-				"error": "unknown table",
-			})
-			w.Write(responseJson)
-			return
-		}
 		currRowId, err := strconv.Atoi(urlParts[1])
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -50,11 +42,9 @@ func PostRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, ta
 		}
 		invalidField, err := findInvalidTypeField(bodyMap, typesForColumns, columnNamePK)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			responseJson, _ := json.Marshal(ServerResponse{
+			sendResponse(w, http.StatusBadRequest, ServerResponse{
 				"error": fmt.Sprintf(`field %s have invalid type`, invalidField),
 			})
-			w.Write(responseJson)
 			return
 		}
 		removeUnknownFields(&bodyMap, typesForColumns)
@@ -63,13 +53,11 @@ func PostRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, ta
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		responseJson, _ := json.Marshal(ServerResponse{
+		sendResponse(w, http.StatusOK, ServerResponse{
 			"response": ServerResponse{
 				"updated": countUpdated,
 			},
 		})
-		w.Write(responseJson)
 		return
 	}
 	w.WriteHeader(http.StatusInternalServerError)

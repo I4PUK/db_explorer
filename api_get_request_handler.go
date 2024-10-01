@@ -1,39 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-func GetRequestHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tableNames []string) {
-	parametersLen := strings.Count(r.URL.Path, "/")
-
-	if r.URL.Path == "/" {
-		getTableListHandler(w, r, db, tableNames)
-	} else {
-		switch parametersLen {
-		case 1:
-			getTableWithParameters(w, r, db, tableNames)
-		case 2:
-			getTableById(w, r, db, tableNames)
-		}
-	}
-}
-
-func getTableListHandler(w http.ResponseWriter, r *http.Request, db dbHandler, tableNames []string) {
-	w.WriteHeader(http.StatusOK)
-	responseJson, _ := json.Marshal(ServerResponse{
-		"response": ServerResponse{
-			"tables": tableNames,
-		},
-	})
-	w.Write(responseJson)
-}
-
-func getTableWithParameters(w http.ResponseWriter, r *http.Request, db dbHandler, tableNames []string) {
+func getTableWithParameters(w http.ResponseWriter, r *http.Request, db dbHandler) {
 	tableName := strings.ReplaceAll(r.URL.Path, "/", "")
 	offset, offsetErr := strconv.Atoi(r.URL.Query().Get("offset"))
 	limit, limitErr := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -45,33 +19,22 @@ func getTableWithParameters(w http.ResponseWriter, r *http.Request, db dbHandler
 		limit = 5
 	}
 
-	if contains(tableNames, tableName) == false {
-		w.WriteHeader(http.StatusNotFound)
-		responseJson, _ := json.Marshal(ServerResponse{
-			"error": "unknown table",
-		})
-		w.Write(responseJson)
-		return
-	}
-	SRList, err := getRowsInTableByOffsetAndLimit(db, tableName, offset, limit)
+	SRList, err := getRowsInTableByOffsetAndLimit(db, &tableName, offset, limit)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	responseJson, _ := json.Marshal(ServerResponse{
+	sendResponse(w, http.StatusOK, ServerResponse{
 		"response": ServerResponse{
 			"records": SRList,
 		},
 	})
-	w.Write(responseJson)
 	return
-
 }
 
-func getRowsInTableByOffsetAndLimit(db dbHandler, tableName string, offset, limit int) ([]ServerResponse, error) {
+func getRowsInTableByOffsetAndLimit(db dbHandler, tableName *string, offset, limit int) ([]ServerResponse, error) {
 	var records []ServerResponse
-	rows, err := db.DB.Query(fmt.Sprintf(`SELECT * FROM %s LIMIT ? OFFSET ?`, tableName), limit, offset)
+	rows, err := db.DB.Query(fmt.Sprintf(`SELECT * FROM %s LIMIT ? OFFSET ?`, *tableName), limit, offset)
 
 	defer rows.Close()
 	if err != nil {
@@ -138,14 +101,6 @@ func getTableById(w http.ResponseWriter, r *http.Request, db dbHandler, tableNam
 	}
 
 	currTableName := urlParts[0]
-	if !contains(tableNames, currTableName) {
-		w.WriteHeader(http.StatusNotFound)
-		responseJson, _ := json.Marshal(ServerResponse{
-			"error": "unknown table",
-		})
-		w.Write(responseJson)
-		return
-	}
 	currRowId, err := strconv.Atoi(urlParts[1])
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -157,19 +112,14 @@ func getTableById(w http.ResponseWriter, r *http.Request, db dbHandler, tableNam
 		return
 	}
 	if SRRow == nil {
-		w.WriteHeader(http.StatusNotFound)
-		responseJson, _ := json.Marshal(ServerResponse{
+		sendResponse(w, http.StatusNotFound, ServerResponse{
 			"error": "record not found",
 		})
-		w.Write(responseJson)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	responseJson, _ := json.Marshal(ServerResponse{
-		"response": ServerResponse{
-			"record": SRRow,
-		},
-	})
-	w.Write(responseJson)
+
+	sendResponse(w, http.StatusOK, ServerResponse{"response": ServerResponse{
+		"record": SRRow,
+	}})
 	return
 }
